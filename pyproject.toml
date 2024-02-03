@@ -1,0 +1,38 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flask_weaviate"
+version = "0.1.1"
+description = "Flask extension for Weaviate"
+readme = "README.md"
+authors = [{ name="Evert Jan Stamhuis", email="ej@fromej.nl" }]
+license = { file = "LICENSE" }
+classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+    ]
+keywords = ["flask", "weaviate", "flask-extension"]
+dependencies = [
+    "flask",
+    "weaviate-client >=4.4.1"
+]
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+dev = ["flake8", "isort", "black", "pytest"]
+
+[project.urls]
+documentation = "https://github.com/evertjstam/flask-weaviate"
+homepage = "https://github.com/evertjstam/flask-weaviate"
+repository = "https://github.com/evertjstam/flask-weaviate"
+tracker = "https://github.com/evertjstam/flask-weaviate/issues"
