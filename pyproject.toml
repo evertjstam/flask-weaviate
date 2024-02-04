@@ -6,13 +6,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flask_weaviate"
-version = "0.1.1"
+version = "0.2.0"
 description = "Flask extension for Weaviate"
 readme = "README.md"
 authors = [{ name="Evert Jan Stamhuis", email="ej@fromej.nl" }]
 license = { file = "LICENSE" }
 classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.8',
@@ -29,7 +29,7 @@ dependencies = [
 requires-python = ">=3.8"
 
 [project.optional-dependencies]
-dev = ["flake8", "isort", "black", "pytest"]
+dev = ["flake8", "isort", "black", "pytest", "faker", "coverage", "build", "twine"]
 
 [project.urls]
 documentation = "https://github.com/evertjstam/flask-weaviate"

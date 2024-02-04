@@ -1,3 +1,19 @@
+# .gitignore file
+
+# Ignore virtual environments
+venv/
+
+# Ignore compiled Python files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore egg-info directories
+*.egg-info/
+
+# Ignore __pycache__ directories in any subdirectory
+/**/__pycache__/
+
 .idea
 build
 dist

@@ -1,5 +1,10 @@
 # Flask-Weaviate
 
+[![PyPI Version](https://img.shields.io/pypi/v/flask-weaviate.svg)](https://pypi.org/project/flask-weaviate/)
+[![Code Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](.coverage)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+
 Flask-Weaviate is a Flask extension for integrating Weaviate into Flask applications. It provides a convenient way to manage a Weaviate client connection, supporting configuration through Flask app settings and environment variables.
 
 ## Installation

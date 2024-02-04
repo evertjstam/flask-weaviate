@@ -28,7 +28,7 @@ from weaviate.auth import (
     _APIKey,
     _BearerToken,
     _ClientCredentials,
-    _ClientPassword,
+    _ClientPassword, Auth,
 )
 from weaviate.config import AdditionalConfig
 from weaviate.connect import ConnectionParams
@@ -181,7 +181,7 @@ class FlaskWeaviate(object):
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ):
-        # self._client = None
+        self._client = None
         # Connection check. first check setup with params,
         # then connection params else embedded is set as standard
         if any(
@@ -213,13 +213,13 @@ class FlaskWeaviate(object):
 
         # check auth setup
         if api_key is not None:
-            self.auth_client_secret = AuthApiKey(api_key=api_key)
+            self.auth_client_secret = Auth.api_key(api_key)
         elif username is not None and password is not None:
-            self.auth_client_secret = AuthClientPassword(
+            self.auth_client_secret = Auth.client_password(
                 username=username, password=password
             )
         elif access_token is not None:
-            self.auth_client_secret = AuthBearerToken(access_token=access_token)
+            self.auth_client_secret = Auth.bearer_token(access_token=access_token)
         else:
             self.auth_client_secret = auth_client_secret
 
@@ -258,27 +258,29 @@ class FlaskWeaviate(object):
             )
             self.embedded_options = None
         elif app.config.get("WEAVIATE_CONNECTION_PARAMS") is not None:
-            self.connection_params = app.config.get("WAVIATE_CONNECTION_PARAMS")
+            self.connection_params = app.config.get("WEAVIATE_CONNECTION_PARAMS")
             self.embedded_options = None
         elif app.config.get("WEAVIATE_EMBEDDED_OPTIONS") is not None:
-            self.embedded_options = app.config.get("EMBEDDED_OPTIONS")
+            self.embedded_options = app.config.get("WEAVIATE_EMBEDDED_OPTIONS")
 
         if app.config.get("WEAVIATE_API_KEY") is not None:
-            self.auth_client_secret = AuthApiKey(
-                api_key=app.config.get("WEAVIATE_API_KEY")
+            self.auth_client_secret = Auth.api_key(
+                app.config.get("WEAVIATE_API_KEY")
             )
         elif (
             app.config.get("WEAVIATE_USERNAME") is not None
             and app.config.get("WEAVIATE_PASSWORD") is not None
         ):
-            self.auth_client_secret = AuthClientPassword(
+            self.auth_client_secret = Auth.client_password(
                 username=app.config.get("WEAVIATE_USERNAME"),
                 password=app.config.get("WEAVIATE_PASSWORD"),
             )
         elif app.config.get("WEAVIATE_ACCESS_TOKEN") is not None:
-            self.auth_client_secret = AuthBearerToken(
+            self.auth_client_secret = Auth.bearer_token(
                 access_token=app.config.get("WEAVIATE_ACCESS_TOKEN")
             )
+        elif app.config.get("WEAVIATE_AUTH_CLIENT_SECRET") is not None:
+            self.auth_client_secret = app.config.get("WEAVIATE_AUTH_CLIENT_SECRET")
 
         if app.config.get("WEAVIATE_ADDITIONAL_HEADERS") is not None:
             self.additional_headers = app.config.get("WEAVIATE_ADDITIONAL_HEADERS")
@@ -314,12 +316,13 @@ class FlaskWeaviate(object):
         :return: The WeaviateClient instance.
         :rtype: WeaviateClient
         """
-        if not hasattr(self, "_client"):
+        if not hasattr(self, "_client") or self._client is None:
             self._client = WeaviateClient(**self.weaviate_config)
-        try:
-            self._client.connect()
-        except WeaviateStartUpError as e:
-            raise Exception("Failed to connect to Weaviate server") from e
+        if self._client.is_connected() is False:
+            try:
+                self._client.connect()
+            except WeaviateStartUpError as e:
+                raise Exception("Failed to connect to Weaviate server") from e
         return self._client
 
     @property
