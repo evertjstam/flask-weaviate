@@ -41,11 +41,11 @@ exceptiongroup==1.2.0
     # via
     #   anyio
     #   pytest
-faker==22.6.0
+faker==22.7.0
     # via flask_weaviate (pyproject.toml)
 flake8==7.0.0
     # via flask_weaviate (pyproject.toml)
-flask==3.0.1
+flask==3.0.2
     # via flask_weaviate (pyproject.toml)
 grpcio==1.60.1
     # via
@@ -128,9 +128,9 @@ pycodestyle==2.11.1
     # via flake8
 pycparser==2.21
     # via cffi
-pydantic==2.6.0
+pydantic==2.6.1
     # via weaviate-client
-pydantic-core==2.16.1
+pydantic-core==2.16.2
     # via pydantic
 pyflakes==3.2.0
     # via flake8
@@ -188,7 +188,7 @@ urllib3==2.2.0
     #   twine
 validators==0.22.0
     # via weaviate-client
-weaviate-client==4.4.1
+weaviate-client==4.4.2
     # via flask_weaviate (pyproject.toml)
 werkzeug==3.0.1
     # via flask
