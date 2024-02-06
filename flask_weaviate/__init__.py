@@ -347,11 +347,11 @@ class FlaskWeaviate(object):
                 self.embedded_options = None
             elif current_app.config.get("WEAVIATE_CONNECTION_PARAMS") is not None:
                 self.connection_params = current_app.config.get(
-                    "WAVIATE_CONNECTION_PARAMS"
+                    "WEAVIATE_CONNECTION_PARAMS"
                 )
                 self.embedded_options = None
             elif current_app.config.get("WEAVIATE_EMBEDDED_OPTIONS") is not None:
-                self.embedded_options = current_app.config.get("EMBEDDED_OPTIONS")
+                self.embedded_options = current_app.config.get("WEAVIATE_EMBEDDED_OPTIONS")
 
             if current_app.config.get("WEAVIATE_API_KEY") is not None:
                 self.auth_client_secret = AuthApiKey(

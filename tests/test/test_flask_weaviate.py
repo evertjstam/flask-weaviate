@@ -3,10 +3,10 @@ from faker import Faker
 from flask import Flask, jsonify
 from httpx import ConnectError
 from weaviate import WeaviateClient
-import weaviate.classes as wvc
-from weaviate.auth import Auth, AuthCredentials
+from weaviate.auth import Auth
 from weaviate.config import AdditionalConfig
 from weaviate.connect import ConnectionParams
+from weaviate.connect.base import _Timeout
 from weaviate.embedded import EmbeddedOptions
 from weaviate.exceptions import UnexpectedStatusCodeError
 
@@ -23,12 +23,6 @@ def app():
 
     # Teardown code (e.g., closing database connections, cleaning up resources)
     # Add your teardown logic here
-
-
-@pytest.fixture
-def client(app):
-    # Create a test client for the Flask app
-    return app.test_client()
 
 
 @pytest.fixture
@@ -129,10 +123,10 @@ def test_app_config_connection_params(app):
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_CONNECTION_PARAMS'] = ConnectionParams.from_params(
         http_host="localhost",
-        http_port=fake.pyint(),
+        http_port=fake.pyint(min_value=1000, max_value=65535),
         http_secure=True,
         grpc_host="localhost",
-        grpc_port=fake.pyint(),
+        grpc_port=fake.pyint(min_value=1000, max_value=65535),
         grpc_secure=True
     )
     weaviate.init_app(app)
@@ -227,10 +221,10 @@ def test_init_with_port(app):
 def test_init_with_connection_params(app):
     weaviate = FlaskWeaviate(connection_params=ConnectionParams.from_params(
         http_host="localhost",
-        http_port=fake.pyint(),
+        http_port=fake.pyint(min_value=1000, max_value=65535),
         http_secure=True,
         grpc_host="localhost",
-        grpc_port=fake.pyint(),
+        grpc_port=fake.pyint(min_value=1000, max_value=65535),
         grpc_secure=True
     ))
     weaviate.init_app(app)
@@ -294,3 +288,112 @@ def test_init_with_additional_params(app):
 
     with pytest.raises(UnexpectedStatusCodeError):
         isinstance(weaviate.client, WeaviateClient)
+
+
+def test_init_lazy_with_app_config_embedded(app):
+
+    embedded_options = EmbeddedOptions()
+    embedded_options.port = fake.pyint(min_value=1000, max_value=65535)
+    app.config['WEAVIATE_EMBEDDED_OPTIONS'] = embedded_options
+    app.config['WEAVIATE_ADDITIONAL_HEADERS'] = dict(Authorization=f"Bearer {fake.password()}")
+    app.config['WEAVIATE_ADDITIONAL_CONFIG'] = AdditionalConfig(timeout=(5, 10))
+    app.config['WEAVIATE_SKIP_INIT_CHECKS'] = True
+    app.config['WEAVIATE_ACCESS_TOKEN'] = fake.password()
+
+    weaviate = FlaskWeaviate()
+
+    @app.route('/search', methods=['GET'])
+    def search_endpoint():
+        assert weaviate.client.is_connected()
+
+        # test if the client is lazily instanced with the app options
+        assert weaviate._client._connection.embedded_db.options.port == embedded_options.port
+        assert weaviate._client._WeaviateClient__skip_init_checks == app.config['WEAVIATE_SKIP_INIT_CHECKS']
+        assert weaviate._client._connection.additional_headers == app.config['WEAVIATE_ADDITIONAL_HEADERS']
+        assert weaviate._client._connection.timeout_config == _Timeout(connect=5, read=10)
+        assert weaviate._client._connection._Connection__auth == Auth.bearer_token(app.config['WEAVIATE_ACCESS_TOKEN'])
+
+        return jsonify({"result": "ok"}), 200
+
+    client = app.test_client()
+
+    response = client.get('/search')
+
+    # Example assertion
+    assert response.status_code == 200
+    assert response.json['result'] == 'ok'
+
+
+def test_init_lazy_with_app_config_connection_params(app):
+    app.config['WEAVIATE_CONNECTION_PARAMS'] = ConnectionParams.from_params(
+        http_host="localhost",
+        http_port=fake.pyint(min_value=1000, max_value=65535),
+        http_secure=True,
+        grpc_host="localhost",
+        grpc_port=fake.pyint(min_value=1000, max_value=65535),
+        grpc_secure=True
+    )
+    app.config['WEAVIATE_API_KEY'] = fake.password()
+
+    weaviate = FlaskWeaviate()
+
+    @app.route('/search', methods=['GET'])
+    def search_endpoint():
+        with pytest.raises(Exception) as e:
+            weaviate.client.is_connected()
+
+        assert str(e.value) == "Failed to connect to Weaviate server"
+        # test if the client is lazily instanced with the app options
+        assert weaviate._client._connection._Connection__auth == Auth.api_key(app.config['WEAVIATE_API_KEY'])
+        assert weaviate._client._connection._connection_params == app.config['WEAVIATE_CONNECTION_PARAMS']
+
+        return jsonify({"result": "ok"}), 200
+
+    client = app.test_client()
+
+    response = client.get('/search')
+
+    # Example assertion
+    assert response.status_code == 200
+    assert response.json['result'] == 'ok'
+
+def test_init_lazy_with_app_config_http_params(app):
+    app.config['WEAVIATE_HTTP_HOST'] = fake.word()
+    app.config['WEAVIATE_HTTP_PORT'] = fake.pyint(min_value=1000, max_value=65535)
+    app.config['WEAVIATE_HTTP_SECURE'] = True
+    app.config['WEAVIATE_GRPC_HOST'] = fake.word()
+    app.config['WEAVIATE_GRPC_PORT'] = fake.pyint(min_value=1000, max_value=65535)
+    app.config['WEAVIATE_GRPC_SECURE'] = True
+    app.config['WEAVIATE_USERNAME'] = fake.word()
+    app.config['WEAVIATE_PASSWORD'] = fake.password()
+
+    weaviate = FlaskWeaviate()
+
+    @app.route('/search', methods=['GET'])
+    def search_endpoint():
+        with pytest.raises(ConnectError):
+            weaviate.client.is_connected()
+
+        # test if the client is lazily instanced with the app options
+        assert weaviate._client._connection._Connection__auth == Auth.client_password(
+            username=app.config['WEAVIATE_USERNAME'],
+            password=app.config['WEAVIATE_PASSWORD']
+        )
+        assert weaviate._client._connection._connection_params == ConnectionParams.from_params(
+            http_host=app.config['WEAVIATE_HTTP_HOST'],
+            http_port=app.config['WEAVIATE_HTTP_PORT'],
+            http_secure=app.config['WEAVIATE_HTTP_SECURE'],
+            grpc_host=app.config['WEAVIATE_GRPC_HOST'],
+            grpc_port=app.config['WEAVIATE_GRPC_PORT'],
+            grpc_secure=app.config['WEAVIATE_GRPC_SECURE'],
+        )
+
+        return jsonify({"result": "ok"}), 200
+
+    client = app.test_client()
+
+    response = client.get('/search')
+
+    # Example assertion
+    assert response.status_code == 200
+    assert response.json['result'] == 'ok'
