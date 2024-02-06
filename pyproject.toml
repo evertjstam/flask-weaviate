@@ -6,13 +6,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flask_weaviate"
-version = "0.2.1"
+version = "1.0.0"
 description = "Flask extension for Weaviate"
 readme = "README.md"
 authors = [{ name="Evert Jan Stamhuis", email="ej@fromej.nl" }]
 license = { file = "LICENSE" }
 classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Framework :: Flask',
         'License :: OSI Approved :: MIT License',
