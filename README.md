@@ -1,7 +1,7 @@
 # Flask-Weaviate
 
 [![PyPI Version](https://img.shields.io/pypi/v/flask-weaviate.svg)](https://pypi.org/project/flask-weaviate/)
-[![Code Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](.coverage)
+![Code Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 
