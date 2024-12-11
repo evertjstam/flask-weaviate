@@ -1,25 +1,16 @@
 import pytest
 from faker import Faker
-from flask import Flask, jsonify
 from httpx import ConnectError
-from weaviate import WeaviateClient
-from weaviate.auth import Auth
-from weaviate.config import AdditionalConfig
-from weaviate.connect import ConnectionParams
-from weaviate.connect.base import _Timeout
-from weaviate.embedded import EmbeddedOptions
-from weaviate.exceptions import UnexpectedStatusCodeError
-
-from flask_weaviate import FlaskWeaviate
 
 fake = Faker()
 
 
 @pytest.fixture
 def app():
+    from flask import Flask, jsonify
     app = Flask(__name__)
-
-    yield app  # The teardown code will be executed after the test
+    with app.app_context():
+        yield app  # The teardown code will be executed after the test
 
     # Teardown code (e.g., closing database connections, cleaning up resources)
     # Add your teardown logic here
@@ -27,11 +18,13 @@ def app():
 
 @pytest.fixture
 def client_with_weaviate(app):
+    from flask_weaviate import FlaskWeaviate
     weaviate = FlaskWeaviate()
     weaviate.init_app(app)
 
     @app.route('/search', methods=['GET'])
     def search_endpoint():
+        from flask import jsonify
         assert weaviate.client.is_connected()
         weaviate.client.collections.delete_all()
         coll = weaviate.client.collections.create('test')
@@ -48,13 +41,19 @@ def client_with_weaviate(app):
 
 
 def test_init_without_app():
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
     weaviate = FlaskWeaviate()
-    assert isinstance(weaviate.client, WeaviateClient)
 
-    assert weaviate.client.is_connected()
+    with pytest.raises(RuntimeError) as e:
+        assert isinstance(weaviate.client, WeaviateClient)
+
+    e.value.message = "Working outside of application context"
 
 
 def test_init_with_app(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
     weaviate = FlaskWeaviate(app=app)
 
     assert isinstance(weaviate.client, WeaviateClient)
@@ -62,6 +61,8 @@ def test_init_with_app(app):
 
 
 def test_init_app(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
     weaviate = FlaskWeaviate()
     weaviate.init_app(app)
 
@@ -70,6 +71,8 @@ def test_init_app(app):
 
 
 def test_weaviate_client_property(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
     weaviate = FlaskWeaviate(app=app)
     weaviate.init_app(app)
 
@@ -78,6 +81,8 @@ def test_weaviate_client_property(app):
 
 
 def test_init_app_no_extensions(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
     del app.extensions
     weaviate = FlaskWeaviate()
     weaviate.init_app(app)
@@ -97,6 +102,10 @@ def test_weaviate_search_endpoint(client_with_weaviate):
 
 
 def test_app_config_http(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.connect import ConnectionParams
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_HTTP_HOST'] = fake.word()
     app.config['WEAVIATE_HTTP_PORT'] = fake.pyint(min_value=1000, max_value=65535)
@@ -120,6 +129,10 @@ def test_app_config_http(app):
 
 
 def test_app_config_connection_params(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.connect import ConnectionParams
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_CONNECTION_PARAMS'] = ConnectionParams.from_params(
         http_host="localhost",
@@ -138,6 +151,10 @@ def test_app_config_connection_params(app):
 
 
 def test_app_config_embedded_options(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.embedded import EmbeddedOptions
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_EMBEDDED_OPTIONS'] = EmbeddedOptions()
     weaviate.init_app(app)
@@ -149,6 +166,11 @@ def test_app_config_embedded_options(app):
 
 
 def test_app_config_api_key(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.auth import Auth
+    from weaviate.exceptions import UnexpectedStatusCodeError
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_API_KEY'] = fake.word()
     weaviate.init_app(app)
@@ -160,6 +182,10 @@ def test_app_config_api_key(app):
 
 
 def test_app_config_username_password(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.auth import Auth
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_USERNAME'] = fake.word()
     app.config['WEAVIATE_PASSWORD'] = fake.password()
@@ -175,6 +201,10 @@ def test_app_config_username_password(app):
 
 
 def test_app_config_access_token(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.auth import Auth
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_ACCESS_TOKEN'] = fake.word()
     weaviate.init_app(app)
@@ -185,6 +215,11 @@ def test_app_config_access_token(app):
 
 
 def test_app_config_auth_client_secret(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.auth import Auth
+    from weaviate.exceptions import UnexpectedStatusCodeError
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_AUTH_CLIENT_SECRET'] = Auth.api_key(fake.word())
     weaviate.init_app(app)
@@ -196,6 +231,11 @@ def test_app_config_auth_client_secret(app):
 
 
 def test_app_config_additional_params(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.config import AdditionalConfig
+    from weaviate.exceptions import UnexpectedStatusCodeError
+
     weaviate = FlaskWeaviate()
     app.config['WEAVIATE_ADDITIONAL_HEADERS'] = dict(Authorization=f"Bearer {fake.password()}")
     app.config['WEAVIATE_ADDITIONAL_CONFIG'] = AdditionalConfig(timeout=(5, 10))
@@ -211,6 +251,9 @@ def test_app_config_additional_params(app):
 
 
 def test_init_with_port(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+
     weaviate = FlaskWeaviate(http_port=fake.pyint(min_value=1000, max_value=65535))
     weaviate.init_app(app)
 
@@ -219,6 +262,10 @@ def test_init_with_port(app):
 
 
 def test_init_with_connection_params(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.connect import ConnectionParams
+
     weaviate = FlaskWeaviate(connection_params=ConnectionParams.from_params(
         http_host="localhost",
         http_port=fake.pyint(min_value=1000, max_value=65535),
@@ -234,6 +281,10 @@ def test_init_with_connection_params(app):
 
 
 def test_init_with_embedded_params(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.embedded import EmbeddedOptions
+
     weaviate = FlaskWeaviate(embedded_options=EmbeddedOptions())
     weaviate.init_app(app)
 
@@ -242,6 +293,10 @@ def test_init_with_embedded_params(app):
 
 
 def test_init_with_api_key(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.exceptions import UnexpectedStatusCodeError
+
     weaviate = FlaskWeaviate(api_key=fake.word())
     weaviate.init_app(app)
 
@@ -250,6 +305,9 @@ def test_init_with_api_key(app):
 
 
 def test_init_with_username_password(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+
     weaviate = FlaskWeaviate(username=fake.word(), password=fake.password())
     weaviate.init_app(app)
 
@@ -258,6 +316,9 @@ def test_init_with_username_password(app):
 
 
 def test_init_with_access_token(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+
     weaviate = FlaskWeaviate(access_token=fake.word())
     weaviate.init_app(app)
 
@@ -265,6 +326,11 @@ def test_init_with_access_token(app):
 
 
 def test_init_with_auth_client_secret(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.auth import Auth
+    from weaviate.exceptions import UnexpectedStatusCodeError
+
     weaviate = FlaskWeaviate(auth_client_secret=Auth.api_key(fake.word()))
     weaviate.init_app(app)
 
@@ -274,11 +340,17 @@ def test_init_with_auth_client_secret(app):
 
 def test_init_with_none_connection_embedded(app):
     with pytest.raises(ValueError) as e:
+        from flask_weaviate import FlaskWeaviate
         FlaskWeaviate(connection_params=None, embedded_options=None)
     assert str(e.value) == "Both connection_params and embedded_options cannot be None."
 
 
 def test_init_with_additional_params(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate import WeaviateClient
+    from weaviate.config import AdditionalConfig
+    from weaviate.exceptions import UnexpectedStatusCodeError
+
     weaviate = FlaskWeaviate(
         additional_headers=dict(Authorization=f"Bearer {fake.password()}"),
         additional_config=AdditionalConfig(timeout=(5, 10)),
@@ -291,6 +363,9 @@ def test_init_with_additional_params(app):
 
 
 def test_init_lazy_with_app_config_embedded(app):
+    from flask_weaviate import FlaskWeaviate
+    from weaviate.config import AdditionalConfig
+    from weaviate.embedded import EmbeddedOptions
 
     embedded_options = EmbeddedOptions()
     embedded_options.port = fake.pyint(min_value=1000, max_value=65535)
@@ -304,6 +379,10 @@ def test_init_lazy_with_app_config_embedded(app):
 
     @app.route('/search', methods=['GET'])
     def search_endpoint():
+        from flask import jsonify
+        from weaviate.auth import Auth
+        from weaviate.connect.base import _Timeout
+
         assert weaviate.client.is_connected()
 
         # test if the client is lazily instanced with the app options
@@ -325,6 +404,8 @@ def test_init_lazy_with_app_config_embedded(app):
 
 
 def test_init_lazy_with_app_config_connection_params(app):
+    from weaviate.connect import ConnectionParams
+
     app.config['WEAVIATE_CONNECTION_PARAMS'] = ConnectionParams.from_params(
         http_host="localhost",
         http_port=fake.pyint(min_value=1000, max_value=65535),
@@ -335,10 +416,14 @@ def test_init_lazy_with_app_config_connection_params(app):
     )
     app.config['WEAVIATE_API_KEY'] = fake.password()
 
+    from flask_weaviate import FlaskWeaviate
     weaviate = FlaskWeaviate()
 
     @app.route('/search', methods=['GET'])
     def search_endpoint():
+        from flask import jsonify
+        from weaviate.auth import Auth
+
         with pytest.raises(Exception) as e:
             weaviate.client.is_connected()
 
@@ -367,10 +452,15 @@ def test_init_lazy_with_app_config_http_params(app):
     app.config['WEAVIATE_USERNAME'] = fake.word()
     app.config['WEAVIATE_PASSWORD'] = fake.password()
 
+    from flask_weaviate import FlaskWeaviate
     weaviate = FlaskWeaviate()
 
     @app.route('/search', methods=['GET'])
     def search_endpoint():
+        from flask import jsonify
+        from weaviate.auth import Auth
+        from weaviate.connect import ConnectionParams
+
         with pytest.raises(ConnectError):
             weaviate.client.is_connected()
 

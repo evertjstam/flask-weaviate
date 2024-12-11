@@ -308,6 +308,10 @@ class FlaskWeaviate(object):
         return app
 
     @property
+    def _client(self) -> Optional[WeaviateClient]:
+        return g.get('weaviate_client', None)
+
+    @property
     def client(self) -> WeaviateClient:
         """
         Lazily connect the WeaviateClient when it's first accessed.
@@ -315,7 +319,7 @@ class FlaskWeaviate(object):
         :return: The WeaviateClient instance.
         :rtype: WeaviateClient
         """
-        if 'weaviate_client' not in g:
+        if g.get('weaviate_client', None) is None:
             g.weaviate_client = WeaviateClient(**self.weaviate_config)
         if g.weaviate_client.is_connected() is False:
             try:
