@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flask_weaviate"
-version = "1.0.0"
+version = "1.1.0"
 description = "Flask extension for Weaviate"
 readme = "README.md"
 authors = [{ name="Evert Jan Stamhuis", email="ej@fromej.nl" }]
