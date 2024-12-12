@@ -19,7 +19,7 @@ except ImportError:
 
 from typing import Dict, Optional, Union
 
-from flask import Flask, current_app, has_app_context
+from flask import Flask, current_app, has_app_context, g
 from weaviate import WeaviateClient
 from weaviate.auth import (
     AuthApiKey,
@@ -181,7 +181,6 @@ class FlaskWeaviate(object):
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ):
-        self._client = None
         # Connection check. first check setup with params,
         # then connection params else embedded is set as standard
         if any(
@@ -288,7 +287,6 @@ class FlaskWeaviate(object):
             self.additional_config = app.config.get("WEAVIATE_ADDITIONAL_CONFIG")
         if app.config.get("WEAVIATE_SKIP_INIT_CHECKS") is not None:
             self.skip_init_checks = app.config.get("WEAVIATE_SKIP_INIT_CHECKS")
-        self._client = WeaviateClient(**self.weaviate_config)
 
         # Store the WeaviateClient instance in the app context
         if not hasattr(app, "extensions"):
@@ -296,17 +294,22 @@ class FlaskWeaviate(object):
         app.extensions["weaviate"] = self
 
         @app.teardown_appcontext
-        def close_connection(responese_or_exception):
+        def close_connection(response_or_exception):
             """
             Disconnect the Weaviate client during app context teardown.
 
-            :param responese_or_exception:
+            :param response_or_exception:
             """
-            if hasattr(self, "_client"):
-                self._client.close()
-            return responese_or_exception
+            weaviate_client = g.pop('weaviate_client', None)
+            if weaviate_client is not None:
+                weaviate_client.close()
+            return response_or_exception
 
         return app
+
+    @property
+    def _client(self) -> Optional[WeaviateClient]:
+        return g.get('weaviate_client', None)
 
     @property
     def client(self) -> WeaviateClient:
@@ -316,14 +319,14 @@ class FlaskWeaviate(object):
         :return: The WeaviateClient instance.
         :rtype: WeaviateClient
         """
-        if not hasattr(self, "_client") or self._client is None:
-            self._client = WeaviateClient(**self.weaviate_config)
-        if self._client.is_connected() is False:
+        if g.get('weaviate_client', None) is None:
+            g.weaviate_client = WeaviateClient(**self.weaviate_config)
+        if g.weaviate_client.is_connected() is False:
             try:
-                self._client.connect()
+                g.weaviate_client.connect()
             except WeaviateStartUpError as e:
                 raise Exception("Failed to connect to Weaviate server") from e
-        return self._client
+        return g.weaviate_client
 
     @property
     def weaviate_config(self):
